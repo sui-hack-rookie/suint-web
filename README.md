@@ -1,36 +1,14 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## SUINT-WEB
 
-## Getting Started
+This repo contains source code for the SUINT project for the SUI Overflow 2025.
 
-First, run the development server:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Description
+We propose a blockchain analytics tool for Sui that provides the functionality of a graph-based visualization and on-chain network analysis of an account’s entire transaction history. Our tool will plot all incoming and outgoing transactions of a given Sui address as a network graph. In this graph, nodes represent wallets or smart contracts and edges represent transactions annotated with details (timestamps, values, and known labels such as “DEX Swap” or “NFT Marketplace”). By turning raw ledger data into an interactive graph, the tool can reveal hidden relationships and patterns among addresses that are difficult to see otherwise​. This visual approach makes it easier for users to follow an address over time, see how funds and assets move, and quickly spot clusters of related activity.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Because Sui is designed for high throughput and parallel transaction processing, the system can efficiently query large data sets and update visualizations in near real time. The front end will prioritize an intuitive UX, allowing users to pan/zoom the network graph, click on nodes for details, and hover over edges to see transaction amounts and timestamps. Overall, this tool aims to make Sui account histories transparent and accessible, providing a clear “story” of how an address has behaved on the network.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Authors:
+- @martian0x80
+- @lakshayGMZ
