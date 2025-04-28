@@ -2,9 +2,14 @@
 
 import { useRef, useEffect, useState } from "react"
 import { useTheme } from "next-themes"
-import ForceGraph2D from "react-force-graph-2d"
+import dynamic from 'next/dynamic';
 import { useToast } from "@/hooks/use-toast"
 import { useMobile } from "@/hooks/use-mobile"
+
+// Dynamically import ForceGraph2D with SSR disabled
+const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), {
+  ssr: false,
+});
 
 export default function GraphVisualization({ data }) {
   const graphRef = useRef(null)
@@ -59,7 +64,7 @@ export default function GraphVisualization({ data }) {
 
   return (
     <div ref={containerRef} className="w-full h-full">
-      {data.nodes.length > 0 ? (
+      {typeof window !== 'undefined' && data.nodes.length > 0 ? (
         <ForceGraph2D
           ref={graphRef}
           graphData={data}
