@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mysten/sui.js": "^0.54.1",
     "@radix-ui/react-dropdown-menu": "^2.1.12",
     "@radix-ui/react-slot": "^1.2.0",
     "@radix-ui/react-toast": "^1.2.11",
