@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation"; // Import useRouter
 import { useToast } from "@/hooks/use-toast"
 import { useMobile } from "@/hooks/use-mobile"
 import { isMobile } from 'react-device-detect';
+import { LocateFixed } from "lucide-react"; // Import the icon
+import { Button } from "@/components/ui/button"
 
 // Dynamically import ForceGraph2D with SSR disabled
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), {
@@ -22,15 +24,25 @@ interface GraphVisualizationProps {
 }
 
 export default function GraphVisualization({ data, onEdgeClick }: GraphVisualizationProps) {
-  const graphRef = useRef(null)
-  const containerRef = useRef(null)
+  const graphRef = useRef<any>(null); 
+  const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
   const { theme } = useTheme()
   const { toast } = useToast()
-  const isMobile = useMobile()
-  const router = useRouter(); // Initialize useRouter
+  const isMobileHook = useMobile(); // Renamed to avoid conflict with 'isMobile' from react-device-detect
+  const router = useRouter(); 
 
   const [lockedNodes, setLockedNodes] = useState<Set<string | number>>(new Set());
+  const [rootNodeId, setRootNodeId] = useState<string | null>(null);
+  const [isGraphReady, setIsGraphReady] = useState(false);
+  const [initialCenteringDone, setInitialCenteringDone] = useState(false); // New state
+
+  // Effect to set isGraphReady when the graph instance is available
+  useEffect(() => {
+    if (graphRef.current) {
+      setIsGraphReady(true);
+    }
+  }, [graphRef.current]); // Rerun if graphRef.current changes (e.g., on mount)
 
   // Handle resize
   useEffect(() => {
@@ -46,44 +58,42 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
-  const [rootNodeId, setRootNodeId] = useState<string | null>(null);
-
-  // Adjust graph focus and identify root node when data changes
+  // Effect to manage rootNodeId state and reset centering flag on data change
   useEffect(() => {
-    if (graphRef.current && data.nodes.length > 0) {
-      const currentRootNode = data.nodes.find(node => node.type === 'root');
-      if (currentRootNode && currentRootNode.id !== rootNodeId) {
-        // New root address detected (e.g., new fetch)
-        setRootNodeId(currentRootNode.id);
-        // Delay focusing to allow initial layout simulation
-        setTimeout(() => {
-          if (graphRef.current) {
-            graphRef.current.centerAt(currentRootNode.x || 0, currentRootNode.y || 0, 750);
-            graphRef.current.zoom(2.0, 750); // Slightly less zoom for broader initial view
-          }
-        }, 500);
+    const currentRootNode = data.nodes.find(node => node.type === 'root');
+    const newRootId = currentRootNode ? currentRootNode.id : null;
+    if (newRootId !== rootNodeId) { 
+      setRootNodeId(newRootId);
+    }
+    setInitialCenteringDone(false); // Reset for new data, so onEngineStop will re-center.
+  }, [data]); // Removed rootNodeId from deps to avoid potential issues if it was set by this effect
+
+  // Effect for D3 forces
+  useEffect(() => {
+    if (!isGraphReady || !graphRef.current) {
+      return; 
+    }
+    graphRef.current.d3Force('charge').strength(-150);
+    graphRef.current.d3Force('link').distance((link: any) =>
+      (rootNodeId && (link.source.id === rootNodeId || link.target.id === rootNodeId)) ? 120 : 70
+    );
+  }, [data, isGraphReady, rootNodeId]); // data is still relevant if structure changes, rootNodeId for link distance
+
+  const handleEngineStop = useCallback(() => {
+    if (graphRef.current && !initialCenteringDone) {
+      const rootNodeInstance = rootNodeId ? data.nodes.find(n => n.id === rootNodeId) : null;
+
+      if (rootNodeInstance && rootNodeInstance.x != null && rootNodeInstance.y != null) {
+        graphRef.current.centerAt(rootNodeInstance.x, rootNodeInstance.y, 750);
+        graphRef.current.zoom(2.0, 750);
+      } else if (rootNodeInstance) { // Fallback for root node if x,y not ready (less likely in onEngineStop)
+        graphRef.current.zoomToFit(400, 150, (n: any) => n.id === rootNodeInstance.id);
       } else if (data.nodes.length > 0) {
-        // Data changed (e.g., due to filtering), re-fit the view
-        graphRef.current.zoomToFit(600, 100); // Adjust duration and padding
+        graphRef.current.zoomToFit(600, 100); // Fit all nodes if no specific root
       }
-    } else if (data.nodes.length === 0 && graphRef.current) {
-       // Handle case where all nodes are filtered out - perhaps reset zoom?
-       // For now, do nothing, it will show an empty canvas.
+      setInitialCenteringDone(true);
     }
-  }, [data, rootNodeId]); // Add rootNodeId to dependencies
-
-  // Apply D3 forces once graph is initialized
-  useEffect(() => {
-    if (graphRef.current) { // No need to wait for rootNodeId specifically for these
-      graphRef.current.d3Force('charge').strength(-150); // Slightly more repulsion
-      // The link distance can be dynamic based on root, or general.
-      // If rootNodeId is available, use it, otherwise a default.
-      const currentRootId = data.nodes.find(n => n.type === 'root')?.id;
-      graphRef.current.d3Force('link').distance(link => 
-        (currentRootId && (link.source.id === currentRootId || link.target.id === currentRootId)) ? 120 : 70
-      );
-    }
-  }, [data]); // Re-apply if data changes, as links might change
+  }, [initialCenteringDone, data.nodes, rootNodeId, isGraphReady]); // isGraphReady ensures graphRef.current is likely set
 
   // Node click handler
   const handleNodeClick = (node: any) => { // Added type for node
@@ -171,7 +181,7 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
   };
 
   // Custom node rendering function
-  const nodeCanvasObject = (node, ctx, globalScale) => {
+  const nodeCanvasObject = (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const size = (isMobile ? 2 : 3) * (node.val || 1);
     const nodeColor = getNodeColor(node); // Get color for the node
     const isLocked = lockedNodes.has(node.id);
@@ -213,7 +223,7 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
 
 
   return (
-    <div ref={containerRef} className="w-full h-full">
+    <div ref={containerRef} className="w-full h-full relative"> {/* Added relative positioning for the button */}
       {typeof window !== 'undefined' && data.nodes.length > 0 ? (
         <ForceGraph2D
           ref={graphRef}
@@ -234,6 +244,7 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
           onLinkClick={handleLinkClick}
           onNodeRightClick={handleNodeRightClick}
           onNodeDragEnd={handleNodeDragEnd}
+          onEngineStop={handleEngineStop} // Added onEngineStop handler
           cooldownTime={8000}
           d3AlphaDecay={0.02}
           d3VelocityDecay={0.25}
@@ -244,6 +255,18 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
             {data.nodes.length === 0 ? "No data to display. Fetch graph data or adjust filters." : "Initializing graph..."}
           </p>
         </div>
+      )}
+      {/* Button to go to Root Node */}
+      {rootNodeId && data.nodes.length > 0 && isGraphReady && (
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleEngineStop}
+          className="absolute bottom-4 left-4 z-10 bg-background/80 hover:bg-muted text-primary"
+          title="Go to Root Node"
+        >
+          <LocateFixed className="h-5 w-5" />
+        </Button>
       )}
     </div>
   )
