@@ -1,11 +1,12 @@
 "use client"
 
-import { useRef, useEffect, useState } from "react"
+import { useRef, useEffect, useState, useCallback } from "react"
 import { useTheme } from "next-themes"
 import dynamic from 'next/dynamic';
 import { useRouter } from "next/navigation"; // Import useRouter
 import { useToast } from "@/hooks/use-toast"
 import { useMobile } from "@/hooks/use-mobile"
+import { isMobile } from 'react-device-detect';
 
 // Dynamically import ForceGraph2D with SSR disabled
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), {
@@ -28,6 +29,8 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
   const { toast } = useToast()
   const isMobile = useMobile()
   const router = useRouter(); // Initialize useRouter
+
+  const [lockedNodes, setLockedNodes] = useState<Set<string | number>>(new Set());
 
   // Handle resize
   useEffect(() => {
@@ -106,6 +109,33 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
     }
   }
 
+  const handleNodeDragEnd = useCallback((node: any) => {
+    // Lock the node at its new position
+    node.fx = node.x;
+    node.fy = node.y;
+    if (!lockedNodes.has(node.id)) {
+      setLockedNodes(prevLockedNodes => {
+        const newSet = new Set(prevLockedNodes);
+        newSet.add(node.id);
+        return newSet;
+      });
+    }
+  }, [lockedNodes]); // Dependency: lockedNodes state
+
+  const handleNodeRightClick = useCallback((node: any, event: MouseEvent) => {
+    event.preventDefault(); // Prevent browser context menu
+    if (lockedNodes.has(node.id)) {
+      // Unlock the node
+      node.fx = null;
+      node.fy = null;
+      setLockedNodes(prevLockedNodes => {
+        const newSet = new Set(prevLockedNodes);
+        newSet.delete(node.id);
+        return newSet;
+      });
+    }
+  }, [lockedNodes]); // Dependency: lockedNodes state
+
   // Get colors based on theme for Sui-specific types
   const getNodeColor = (node) => {
     // Updated "kawaii" and visible color palette
@@ -144,12 +174,23 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
   const nodeCanvasObject = (node, ctx, globalScale) => {
     const size = (isMobile ? 2 : 3) * (node.val || 1);
     const nodeColor = getNodeColor(node); // Get color for the node
+    const isLocked = lockedNodes.has(node.id);
     
-    // Draw the circle
+    // Draw the main circle
     ctx.fillStyle = nodeColor;
     ctx.beginPath();
     ctx.arc(node.x, node.y, size, 0, 2 * Math.PI, false);
     ctx.fill();
+
+    // Draw lock indicator (e.g., a border) if locked
+    if (isLocked) {
+      ctx.strokeStyle = 'gold'; // Visual cue for locked state
+      ctx.lineWidth = Math.max(1, 3 / globalScale); // Make it noticeable
+      ctx.beginPath();
+      // Draw the border slightly outside the node
+      ctx.arc(node.x, node.y, size + ctx.lineWidth / 2 - (ctx.lineWidth > 1 ? 0.5 : 0) , 0, 2 * Math.PI, false);
+      ctx.stroke();
+    }
 
     // Draw the address preview text
     const label = node.address ? `${node.address.substring(0, 6)}...` : `${node.id.substring(0, 6)}...`;
@@ -191,6 +232,8 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
           linkDirectionalParticleColor={() => theme === "dark" ? "rgba(255, 105, 180, 0.9)" : "rgba(255, 20, 147, 0.75)"} // Kawaii particle colors (pinks)
           onNodeClick={handleNodeClick}
           onLinkClick={handleLinkClick}
+          onNodeRightClick={handleNodeRightClick}
+          onNodeDragEnd={handleNodeDragEnd}
           cooldownTime={8000}
           d3AlphaDecay={0.02}
           d3VelocityDecay={0.25}
