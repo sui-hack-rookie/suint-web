@@ -109,9 +109,10 @@ export interface Node {
 export interface Link {
   source: string;  // ID of the source node
   target: string;  // ID of the target node
-  value?: number;   // Optional: for link thickness or strength
+  value?: number;   // Optional: for link thickness or strength (represents transaction amount or nominal value)
   transactionId?: string; // Sui transaction ID
   transactionType?: string; // Type of transaction (e.g., 'transfer', 'publish')
+  flow?: 'in' | 'out' | 'internal'; // Flow direction relative to the rootAddress
   // Add other react-force-graph-2d compatible fields as needed
 }
 
@@ -384,14 +385,24 @@ export async function transformSuiTransactionsToGraphData(
         // Create a link from sender to this recipient
         // Ensure both nodes exist before creating a link (addNode handles uniqueness)
         if (nodeIds.has(tx.sender) && nodeIds.has(recipientAddress)) {
+          let flowDirection: 'in' | 'out' | 'internal' | undefined = undefined;
+          if (tx.sender === rootAddress && recipientAddress === rootAddress) {
+            flowDirection = 'internal';
+          } else if (tx.sender === rootAddress) {
+            flowDirection = 'out';
+          } else if (recipientAddress === rootAddress) {
+            flowDirection = 'in';
+          }
+          // If neither sender nor recipient is the rootAddress, flow is undefined or could be 'other'
+          // For this filtering, we are primarily interested in flows involving the rootAddress.
+
           links.push({
             source: tx.sender,
             target: recipientAddress,
             transactionId: tx.id,
-            // Determine transactionType based on status, can be refined
             transactionType: tx.status === 'success' ? 'Transfer/Interaction' : 'Failed Tx',
-            // If multiple recipients, tx.amount is total. Link value should represent individual connection.
             value: tx.recipients.length === 1 ? tx.amount : 1, // Use actual amount for 1-to-1, nominal for 1-to-many
+            flow: flowDirection,
           });
         }
       });

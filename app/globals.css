@@ -135,7 +135,15 @@
   * {
     @apply border-border;
   }
+  html, body {
+    @apply h-full; /* Ensure html and body take full height */
+  }
+  html {
+    @apply bg-background; /* Apply background to html as well */
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground; /* Body already has this, but explicit h-full is key */
+    /* Ensure body is also at least full viewport height if content is shorter */
+    @apply min-h-screen; 
   }
 }
