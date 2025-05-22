@@ -12,7 +12,7 @@ export default function NavBar() {
       <div className="container flex h-16 items-center px-4">
         <Link href="/" className="flex items-center gap-2">
           <Network className="h-6 w-6" />
-          <span className="font-bold">GraphViz Explorer</span>
+          <span className="font-bold">SUINT Explorer</span>
         </Link>
 
         <nav className="ml-auto flex items-center gap-4">

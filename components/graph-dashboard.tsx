@@ -24,7 +24,7 @@ import { DatePicker } from "@/components/ui/date-picker" // Import DatePicker
 import { subDays, startOfDay, endOfDay } from "date-fns" // For predefined ranges
 
 // Define node types for filtering (can be adapted or expanded for Sui data)
-const NODE_TYPES = ["root", "wallet", "contract", "object", "Person", "Organization", "Location", "Event", "Resource"]
+const NODE_TYPES = ["root", "wallet", "contract", "object"]
 const NODE_STATUSES = ["Active", "Inactive", "Pending", "Archived"] // May not be directly applicable to Sui nodes initially
 
 // Create a new client component that uses useSearchParams
