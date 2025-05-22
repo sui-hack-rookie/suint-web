@@ -116,18 +116,25 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
 
   // Get colors based on theme for Sui-specific types
   const getNodeColor = (node) => {
-    let color = theme === "dark" ? "#9ca3af" : "#6b7280"; // Default gray
+    // Updated "kawaii" and visible color palette
+    let color = theme === "dark" ? "#E0E0E0" : "#777777"; // Default: Light Gray (dark) / Medium Gray (light)
+
     const typeColorMap = {
-      root: theme === "dark" ? "#fde047" : "#facc15", // Yellow
-      wallet: theme === "dark" ? "#60a5fa" : "#3b82f6", // Blue
-      contract: theme === "dark" ? "#4ade80" : "#22c55e", // Green
-      Person: theme === "dark" ? "#8b5cf6" : "#7c3aed",
-      Organization: theme === "dark" ? "#ec4899" : "#db2777",
-      Location: theme === "dark" ? "#10b981" : "#059669",
-      Event: theme === "dark" ? "#f59e0b" : "#d97706",
-      Resource: theme === "dark" ? "#3b82f6" : "#2563eb",
+      // Dark Theme: Softer pastels & bright accents
+      // Light Theme: Vibrant & cheerful colors
+      root: theme === "dark" ? "#FFACEC" : "#FF69B4",       // Pastel Pink (dark) / Hot Pink (light)
+      wallet: theme === "dark" ? "#A7F3D0" : "#40E0D0",     // Pastel Mint (dark) / Turquoise (light)
+      contract: theme === "dark" ? "#B1E1FF" : "#6495ED",   // Pastel Blue (dark) / Cornflower Blue (light)
+      Person: theme === "dark" ? "#FFDDAA" : "#FFA07A",     // Pastel Peach (dark) / Light Salmon (light)
+      Organization: theme === "dark" ? "#D7BFFF" : "#9370DB",// Pastel Lavender (dark) / Medium Purple (light)
+      Location: theme === "dark" ? "#FFFFAA" : "#F0E68C",   // Pastel Yellow (dark) / Khaki (light)
+      Event: theme === "dark" ? "#FFC0CB" : "#FFB6C1",      // Light Pink (dark) / Light Pink (light) - can be more distinct if needed
+      Resource: theme === "dark" ? "#C1E1C1" : "#90EE90",   // Pastel Green (dark) / Light Green (light)
     };
-    if (node.type && typeColorMap[node.type]) color = typeColorMap[node.type];
+
+    if (node.type && typeColorMap[node.type]) {
+      color = typeColorMap[node.type];
+    }
     return color;
   }
 
@@ -184,12 +191,12 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
           // nodeColor={getNodeColor} // Removed as nodeCanvasObject handles coloring
           nodeRelSize={isMobile ? 2 : 3} // Base size, actual size determined by node.val in nodeCanvasObject
           nodeCanvasObject={nodeCanvasObject}
-          linkWidth={(link: any) => Math.max(0.5, Math.min(2.5, (link.value || 0) / 500000))}
-          linkColor={() => (theme === "dark" ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.15)")}
+          linkWidth={(link: any) => Math.max(1, Math.min(2.5, (link.value || 0) / 500000))}
+          linkColor={() => (theme === "dark" ? "rgba(220, 220, 220, 0.3)" : "rgba(100, 100, 100, 0.2)")} // Adjusted link colors
           linkLabel={(link: any) => `Type: ${link.transactionType}, Value: ${link.value}`}
-          linkDirectionalParticles={2}
+          linkDirectionalParticles={3}
           linkDirectionalParticleWidth={1.5}
-          linkDirectionalParticleColor={() => theme === "dark" ? "rgba(200, 200, 200, 0.6)" : "rgba(50, 50, 50, 0.6)"}
+          linkDirectionalParticleColor={() => theme === "dark" ? "rgba(255, 105, 180, 0.9)" : "rgba(255, 20, 147, 0.75)"} // Kawaii particle colors (pinks)
           onNodeClick={handleNodeClick}
           onLinkClick={handleLinkClick}
           cooldownTime={8000}
