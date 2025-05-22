@@ -231,9 +231,9 @@ useEffect(() => {
     const activeLinkNodeIds = new Set<string>();
     tempFilteredLinks.forEach(link => {
       if (typeof link.source === 'string') activeLinkNodeIds.add(link.source);
-      else activeLinkNodeIds.add(link.source.id); 
+      else activeLinkNodeIds.add((link.source as {id: string}).id); 
       if (typeof link.target === 'string') activeLinkNodeIds.add(link.target);
-      else activeLinkNodeIds.add(link.target.id); 
+      else activeLinkNodeIds.add((link.target as {id: string}).id); 
     });
 
     // Ensure root node is always included if it was in the original graphData
@@ -247,8 +247,8 @@ useEffect(() => {
     // Ensure links only connect nodes that are in the finalFilteredNodes list
     const finalNodeIds = new Set(finalFilteredNodes.map(n => n.id));
     const finalFilteredLinks = tempFilteredLinks.filter(link => {
-         const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
-         const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+         const sourceId = typeof link.source === 'string' ? link.source : (link.source as {id: string}).id;
+         const targetId = typeof link.target === 'string' ? link.target : (link.target as {id: string}).id;
          return finalNodeIds.has(sourceId) && finalNodeIds.has(targetId);
     });
 
