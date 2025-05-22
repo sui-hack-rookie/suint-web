@@ -20,6 +20,8 @@ import {
   SuiAdapterError, // Import custom error
 } from "@/lib/sui-adapter"
 import { TransactionInfoCard } from "@/components/ui/transaction-info-card" // Import the new card
+import { DatePicker } from "@/components/ui/date-picker" // Import DatePicker
+import { subDays, startOfDay, endOfDay } from "date-fns" // For predefined ranges
 
 // Define node types for filtering (can be adapted or expanded for Sui data)
 const NODE_TYPES = ["root", "wallet", "contract", "object", "Person", "Organization", "Location", "Event", "Resource"]
@@ -162,9 +164,6 @@ export default function GraphDashboard() {
      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only re-run if searchParams change
 
-
-import { DatePicker } from "@/components/ui/date-picker" // Import DatePicker
-import { subDays, startOfDay, endOfDay } from "date-fns" // For predefined ranges
 
 // Apply search and filters to graph data
 useEffect(() => {
