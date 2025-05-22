@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation" // For App Router
 import { 
   Search, FilterX, ArrowRightToLine, ArrowLeftFromLine, Repeat, Coins, 
-  CalendarDays, Play, AlertTriangle, Info, Loader2 
+  CalendarDays, Play, AlertTriangle, Info, Loader2, SlidersHorizontal
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -43,6 +43,9 @@ function GraphDashboardContent() {
   const [suiError, setSuiError] = useState<string | null>(null)
   const [noTransactionsFound, setNoTransactionsFound] = useState(false)
   const [rawSuiTransactions, setRawSuiTransactions] = useState<SuiTransaction[]>([])
+
+  // State for Filter Panel visibility
+  const [showFilters, setShowFilters] = useState(false);
 
   // State for TransactionInfoCard
   const [isInfoCardOpen, setIsInfoCardOpen] = useState(false)
@@ -345,9 +348,9 @@ useEffect(() => {
     <div className="flex flex-col h-screen">
       <NavBar />
 
-      <div className="flex-1 p-4 overflow-hidden relative"> {/* Added relative for potential absolute positioning inside */}
-        <div className="mb-4 flex flex-col gap-4">
-          {/* Sui Address Input and Fetch Button */}
+      <div className="flex-1 flex flex-col p-4 overflow-hidden relative"> {/* Main content area */}
+        {/* Section 1: Always visible top controls */}
+        <div className="flex-shrink-0"> 
           <div className="flex items-center gap-2">
             <Input
               placeholder="Enter Sui Address (e.g., 0x123...)"
@@ -355,7 +358,7 @@ useEffect(() => {
               onChange={(e) => {
                 setSuiAddress(e.target.value);
                 if (suiError) setSuiError(null); 
-                if (noTransactionsFound) setNoTransactionsFound(null);
+                if (noTransactionsFound) setNoTransactionsFound(false); // Corrected to set boolean
               }}
               className="flex-1"
               disabled={isLoadingSuiData}
@@ -368,200 +371,240 @@ useEffect(() => {
                 <><Play className="mr-2 h-4 w-4" /> Fetch Graph</>
               )}
             </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowFilters(!showFilters)} 
+              title={showFilters ? "Hide Filters" : "Show Filters"}
+            >
+              <SlidersHorizontal className="mr-0 sm:mr-2 h-4 w-4" /> 
+              <span className="hidden sm:inline">{showFilters ? "Hide" : "Show"} Filters</span>
+            </Button>
           </div>
           {suiError && (
-            <p className="text-red-500 text-sm flex items-center">
+            <p className="text-red-500 text-sm flex items-center mt-2">
               <AlertTriangle className="mr-2 h-4 w-4" /> {suiError}
             </p>
           )}
-
-          {/* Existing Search Input */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search nodes by name, type, or ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-                disabled={isLoadingSuiData} // Disable search while loading new data
-              />
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchQuery("")
-                setActiveFilters([])
-              }}
-              disabled={isLoadingSuiData}
-            >
-              <FilterX className="mr-2 h-4 w-4" /> Clear Filters
-            </Button>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <span className="text-sm font-medium py-1">Filter by type:</span>
-            {NODE_TYPES.map((type) => (
-              <Badge
-                key={type}
-                variant={activeFilters.includes(type) ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => toggleFilter(type)}
-              >
-                {type}
-              </Badge>
-            ))}
-          </div>
-
-          {/* Flow and Amount Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block flex items-center">
-                 Transaction Flow
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                    key="all"
-                    variant={flowFilter === 'all' ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFlowFilter('all')}
-                    disabled={isLoadingSuiData}
-                  >
-                    All Flows
-                </Button>
-                <Button
-                    key="in"
-                    variant={flowFilter === 'in' ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFlowFilter('in')}
-                    disabled={isLoadingSuiData}
-                  >
-                    <ArrowRightToLine className="mr-1.5 h-3 w-3" /> Inflow
-                </Button>
-                <Button
-                    key="out"
-                    variant={flowFilter === 'out' ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFlowFilter('out')}
-                    disabled={isLoadingSuiData}
-                  >
-                    <ArrowLeftFromLine className="mr-1.5 h-3 w-3" /> Outflow
-                </Button>
-                <Button
-                    key="internal"
-                    variant={flowFilter === 'internal' ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFlowFilter('internal')}
-                    disabled={isLoadingSuiData}
-                  >
-                    <Repeat className="mr-1.5 h-3 w-3" /> Internal
-                  </Button>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block flex items-center">
-                <Coins className="mr-1.5 h-4 w-4 text-muted-foreground" /> Transaction Amount (MIST)
-              </label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  placeholder="Min amount"
-                  value={minAmount}
-                  onChange={(e) => setMinAmount(e.target.value)}
-                  min="0"
-                  className="flex-1"
-                  disabled={isLoadingSuiData}
-                />
-                <Input
-                  type="number"
-                  placeholder="Max amount"
-                  value={maxAmount}
-                  onChange={(e) => setMaxAmount(e.target.value)}
-                  min="0"
-                  className="flex-1"
-                  disabled={isLoadingSuiData}
-                />
-              </div>
-              <div className="mt-2 flex gap-2">
-                 <Button size="sm" onClick={handleApplyAmountFilter} disabled={isLoadingSuiData}>Apply Amount</Button>
-                 <Button size="sm" variant="outline" onClick={handleClearAmountFilter} disabled={isLoadingSuiData}>Clear Amount</Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Time Filter Section */}
-          <div>
-            <label className="text-sm font-medium mb-1 block flex items-center">
-              <CalendarDays className="mr-1.5 h-4 w-4 text-muted-foreground" /> Filter by Date Range
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-              <DatePicker date={startDate} setDate={setStartDate} placeholder="Start date" disabled={isLoadingSuiData} />
-              <DatePicker date={endDate} setDate={setEndDate} placeholder="End date" disabled={isLoadingSuiData} />
-            </div>
-            <div className="flex flex-wrap gap-2 mb-2">
-              <Button size="sm" variant="outline" onClick={() => setPredefinedDateRange(1)} disabled={isLoadingSuiData}>Last 24h</Button>
-              <Button size="sm" variant="outline" onClick={() => setPredefinedDateRange(7)} disabled={isLoadingSuiData}>Last 7 Days</Button>
-              <Button size="sm" variant="outline" onClick={() => setPredefinedDateRange(30)} disabled={isLoadingSuiData}>Last 30 Days</Button>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleApplyTimeFilter} disabled={isLoadingSuiData}>Apply Dates</Button>
-              <Button size="sm" variant="outline" onClick={handleClearTimeFilter} disabled={isLoadingSuiData}>Clear Dates</Button>
-            </div>
-          </div>
-
-          {/* Status filter might be less relevant for Sui nodes initially, can be hidden or adapted */}
-          {/* <div className="flex flex-wrap gap-2">
-            <span className="text-sm font-medium py-1">Filter by status:</span>
-            {NODE_STATUSES.map((status) => (
-              <Badge
-                key={status}
-                variant={activeFilters.includes(status) ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => toggleFilter(status)}
-              >
-                {status}
-              </Badge>
-            ))}
-          </div> */}
         </div>
 
-        <div className="h-[calc(100vh-320px)] border rounded-lg overflow-hidden bg-background"> {/* Adjusted height for new filters */}
+        {/* Spacer: This will be effectively the margin-bottom for the top controls */}
+        <div className="h-4 flex-shrink-0"></div>
+
+        {/* Section 2: Conditionally rendered Filter Panel (Absolute Positioned) */}
+        {showFilters && (
+          <div 
+            className="absolute left-4 right-4 z-20 bg-card border p-4 shadow-lg rounded-md overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent"
+            style={{ 
+              top: 'calc(1rem + 75px)', // Approx height of top controls (p-4 + input row + error)
+              maxHeight: 'calc(100% - (1rem + 75px) - 1rem)' // Full height - top offset - bottom padding
+            }}
+          >
+            <div className="flex flex-col gap-4">
+              {/* Search Input */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search nodes by name, type, or ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8"
+                    disabled={isLoadingSuiData}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery("")
+                    setActiveFilters([])
+                    // Optionally reset other filters here if desired for a "master clear"
+                  }}
+                  disabled={isLoadingSuiData}
+                >
+                  <FilterX className="mr-2 h-4 w-4" /> Clear Search & Type
+                </Button>
+              </div>
+
+              {/* Node Type Filters */}
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-sm font-medium py-1">Filter by type:</span>
+                {NODE_TYPES.map((type) => (
+                  <Badge
+                    key={type}
+                    variant={activeFilters.includes(type) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => toggleFilter(type)}
+                  >
+                    {type}
+                  </Badge>
+                ))}
+              </div>
+
+              {/* Flow and Amount Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block flex items-center">
+                     Transaction Flow
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                        key="all"
+                        variant={flowFilter === 'all' ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setFlowFilter('all')}
+                        disabled={isLoadingSuiData}
+                      >
+                        All Flows
+                    </Button>
+                    <Button
+                        key="in"
+                        variant={flowFilter === 'in' ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setFlowFilter('in')}
+                        disabled={isLoadingSuiData}
+                      >
+                        <ArrowRightToLine className="mr-1.5 h-3 w-3" /> Inflow
+                    </Button>
+                    <Button
+                        key="out"
+                        variant={flowFilter === 'out' ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setFlowFilter('out')}
+                        disabled={isLoadingSuiData}
+                      >
+                        <ArrowLeftFromLine className="mr-1.5 h-3 w-3" /> Outflow
+                    </Button>
+                    <Button
+                        key="internal"
+                        variant={flowFilter === 'internal' ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setFlowFilter('internal')}
+                        disabled={isLoadingSuiData}
+                      >
+                        <Repeat className="mr-1.5 h-3 w-3" /> Internal
+                      </Button>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block flex items-center">
+                    <Coins className="mr-1.5 h-4 w-4 text-muted-foreground" /> Transaction Amount (MIST)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Min amount"
+                      value={minAmount}
+                      onChange={(e) => setMinAmount(e.target.value)}
+                      min="0"
+                      className="flex-1"
+                      disabled={isLoadingSuiData}
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Max amount"
+                      value={maxAmount}
+                      onChange={(e) => setMaxAmount(e.target.value)}
+                      min="0"
+                      className="flex-1"
+                      disabled={isLoadingSuiData}
+                    />
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                     <Button size="sm" onClick={handleApplyAmountFilter} disabled={isLoadingSuiData}>Apply Amount</Button>
+                     <Button size="sm" variant="outline" onClick={handleClearAmountFilter} disabled={isLoadingSuiData}>Clear Amount</Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Time Filter Section */}
+              <div>
+                <label className="text-sm font-medium mb-1 block flex items-center">
+                  <CalendarDays className="mr-1.5 h-4 w-4 text-muted-foreground" /> Filter by Date Range
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                  <DatePicker date={startDate} setDate={setStartDate} placeholder="Start date" disabled={isLoadingSuiData} />
+                  <DatePicker date={endDate} setDate={setEndDate} placeholder="End date" disabled={isLoadingSuiData} />
+                </div>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <Button size="sm" variant="outline" onClick={() => setPredefinedDateRange(1)} disabled={isLoadingSuiData}>Last 24h</Button>
+                  <Button size="sm" variant="outline" onClick={() => setPredefinedDateRange(7)} disabled={isLoadingSuiData}>Last 7 Days</Button>
+                  <Button size="sm" variant="outline" onClick={() => setPredefinedDateRange(30)} disabled={isLoadingSuiData}>Last 30 Days</Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleApplyTimeFilter} disabled={isLoadingSuiData}>Apply Dates</Button>
+                  <Button size="sm" variant="outline" onClick={handleClearTimeFilter} disabled={isLoadingSuiData}>Clear Dates</Button>
+                </div>
+              </div>
+              
+              {/* Status filter (optional, can be kept or removed) */}
+              {/* <div className="flex flex-wrap gap-2">
+                <span className="text-sm font-medium py-1">Filter by status:</span>
+                {NODE_STATUSES.map((status) => (
+                  <Badge
+                    key={status}
+                    variant={activeFilters.includes(status) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => toggleFilter(status)}
+                  >
+                    {status}
+                  </Badge>
+                ))}
+              </div> */}
+            </div>
+          </div>
+        )}
+
+        {/* Section 3: Graph Visualization Area (takes remaining space) */}
+        <div className="flex-1 border rounded-lg overflow-hidden bg-background relative">
           {isLoadingSuiData && (
-            <p className="p-4 text-center flex items-center justify-center">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading Sui transaction data...
-            </p>
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+              <p className="p-4 text-center flex items-center justify-center">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading Sui transaction data...
+              </p>
+            </div>
           )}
           
-          {!isLoadingSuiData && suiError && (
-            <p className="p-4 text-center text-red-500 flex items-center justify-center">
-              <AlertTriangle className="mr-2 h-5 w-5" /> {suiError}
-            </p>
+          {!isLoadingSuiData && suiError && !graphData.nodes.length && ( // Show general error if no graph data at all
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="p-4 text-center text-red-500 flex items-center justify-center">
+                <AlertTriangle className="mr-2 h-5 w-5" /> {suiError}
+              </p>
+            </div>
           )}
 
           {!isLoadingSuiData && !suiError && noTransactionsFound && (
-            <p className="p-4 text-center text-muted-foreground flex items-center justify-center">
-              <Info className="mr-2 h-5 w-5" /> No transactions found for this address.
-            </p>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="p-4 text-center text-muted-foreground flex items-center justify-center">
+                <Info className="mr-2 h-5 w-5" /> No transactions found for this address.
+              </p>
+            </div>
           )}
 
-          {!isLoadingSuiData && !suiError && !noTransactionsFound && graphData.nodes.length === 0 && (
-            <p className="p-4 text-center text-muted-foreground">
-              Enter a Sui address above and click "Fetch Graph" to visualize its transactions. 
-            </p>
+          {!isLoadingSuiData && !suiError && !noTransactionsFound && graphData.nodes.length === 0 && !suiAddress && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="p-4 text-center text-muted-foreground">
+                Enter a Sui address above and click "Fetch Graph" to visualize its transactions. 
+              </p>
+            </div>
           )}
-
-          {!isLoadingSuiData && !suiError && !noTransactionsFound && filteredData.nodes.length > 0 && (
-            <GraphVisualization data={filteredData} onEdgeClick={handleEdgeClickForInfo} />
-          )}
-
-          {/* Message for when filters result in no visible nodes from valid graph data */}
-          {!isLoadingSuiData && !suiError && !noTransactionsFound && graphData.nodes.length > 0 && filteredData.nodes.length === 0 && (
-             <p className="p-4 text-center text-muted-foreground">
-              No nodes match your current search/filter criteria. Clear filters to see the full graph.
-            </p>
+          
+          {/* Render graph if data exists, or if it's empty due to filters but was loaded */}
+          {(!isLoadingSuiData && !suiError && graphData.nodes.length > 0) && (
+            <>
+              <GraphVisualization data={filteredData} onEdgeClick={handleEdgeClickForInfo} />
+              {/* Message for when filters result in no visible nodes from valid graph data */}
+              {filteredData.nodes.length === 0 && !noTransactionsFound && (
+                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <p className="p-4 text-center text-muted-foreground bg-background/70 rounded-md">
+                      No nodes match your current search/filter criteria. <br/> Clear filters or adjust them in the panel above.
+                    </p>
+                 </div>
+              )}
+            </>
           )}
         </div>
         
+        {/* Section 4: TransactionInfoCard (already positioned or modal) */}
         <TransactionInfoCard
           isOpen={isInfoCardOpen}
           onClose={() => setIsInfoCardOpen(false)}
