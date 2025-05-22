@@ -104,14 +104,6 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
     if (onEdgeClick) {
       onEdgeClick(link);
     }
-
-    // Keep the existing toast for immediate feedback (optional, could be removed)
-    const sourceNode = link.source;
-    const targetNode = link.target;
-    toast({
-      title: `Link Clicked: ${link.transactionId?.substring(0, 10)}...`, // Modified title for clarity
-      description: `Details for transactions between ${sourceNode?.id?.substring(0,6)}... and ${targetNode?.id?.substring(0,6)}... will be shown.`,
-    });
   }
 
   // Get colors based on theme for Sui-specific types
@@ -169,7 +161,7 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
     const effectiveFontSize = Math.max(1.5, Math.min(fontSize, size * 0.8));
 
 
-    if (effectiveFontSize > 2) { // Only draw if font size is reasonably large
+    if (effectiveFontSize >= 1.5) { // Only draw if font size is reasonably large
         ctx.font = `${effectiveFontSize}px Sans-Serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -187,7 +179,7 @@ export default function GraphVisualization({ data, onEdgeClick }: GraphVisualiza
           graphData={data}
           width={dimensions.width}
           height={dimensions.height}
-          nodeLabel={(node: any) => `${node.name} (${node.type})`} // Keep for hover details
+          nodeLabel={(node: any) => `Type: ${node.type}<br/>Address: ${node.id}`} 
           // nodeColor={getNodeColor} // Removed as nodeCanvasObject handles coloring
           nodeRelSize={isMobile ? 2 : 3} // Base size, actual size determined by node.val in nodeCanvasObject
           nodeCanvasObject={nodeCanvasObject}

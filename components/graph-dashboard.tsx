@@ -22,6 +22,7 @@ import {
 import { TransactionInfoCard } from "@/components/ui/transaction-info-card" // Import the new card
 import { DatePicker } from "@/components/ui/date-picker" // Import DatePicker
 import { subDays, startOfDay, endOfDay } from "date-fns" // For predefined ranges
+import { cn } from "@/lib/utils"
 
 // Define node types for filtering (can be adapted or expanded for Sui data)
 const NODE_TYPES = ["root", "wallet", "contract", "object"]
@@ -46,6 +47,8 @@ function GraphDashboardContent() {
 
   // State for Filter Panel visibility
   const [showFilters, setShowFilters] = useState(false);
+  const filterPanelRef = useRef<HTMLDivElement>(null); // Ref for the filter panel
+  const toggleFiltersButtonRef = useRef<HTMLButtonElement>(null); // Ref for the toggle button
 
   // State for TransactionInfoCard
   const [isInfoCardOpen, setIsInfoCardOpen] = useState(false)
@@ -344,6 +347,27 @@ useEffect(() => {
     setIsInfoCardOpen(true);
   };
 
+  // Effect to handle clicks outside the filter panel to close it
+  useEffect(() => {
+    if (!showFilters) return;
+
+    const handleClickOutside = (event: PointerEvent) => {
+      if (
+        filterPanelRef.current &&
+        !filterPanelRef.current.contains(event.target as Node) &&
+        toggleFiltersButtonRef.current &&
+        !toggleFiltersButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowFilters(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handleClickOutside);
+    return () => {
+      document.removeEventListener("pointerdown", handleClickOutside);
+    };
+  }, [showFilters]);
+
   return (
     <div className="flex flex-col h-screen">
       <NavBar />
@@ -372,6 +396,7 @@ useEffect(() => {
               )}
             </Button>
             <Button 
+              ref={toggleFiltersButtonRef} // Assign ref to the toggle button
               variant="outline" 
               onClick={() => setShowFilters(!showFilters)} 
               title={showFilters ? "Hide Filters" : "Show Filters"}
@@ -391,14 +416,30 @@ useEffect(() => {
         <div className="h-4 flex-shrink-0"></div>
 
         {/* Section 2: Conditionally rendered Filter Panel (Absolute Positioned) */}
-        {showFilters && (
-          <div 
-            className="absolute left-4 right-4 z-20 bg-card border p-4 shadow-lg rounded-md overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent"
-            style={{ 
-              top: 'calc(1rem + 75px)', // Approx height of top controls (p-4 + input row + error)
-              maxHeight: 'calc(100% - (1rem + 75px) - 1rem)' // Full height - top offset - bottom padding
-            }}
-          >
+        {/* 
+          The panel will animate in. For a full exit animation before removal from DOM,
+          a Transition component (e.g., from Headless UI) or more complex state 
+          management would be needed. This setup provides a smooth entry.
+        */}
+        <div 
+          ref={filterPanelRef}
+          className={cn(
+            "absolute left-4 right-4 z-20 bg-card border p-4 shadow-lg rounded-md overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent",
+            "transition-all duration-300 ease-in-out transform", // Base transition classes
+            showFilters 
+              ? "opacity-100 translate-y-0" // Visible state
+              : "opacity-0 -translate-y-4 pointer-events-none" // Hidden state (for smooth appearance)
+          )}
+          style={{ 
+            top: 'calc(1rem + 75px)', // Approx height of top controls (p-4 + input row + error)
+            // Conditionally render or set visibility to hidden if not shown
+            // visibility: showFilters ? 'visible' : 'hidden', // Alternative to pointer-events-none
+            // maxHeight is important for scrollability within the panel
+            maxHeight: showFilters ? 'calc(100% - (1rem + 75px) - 1rem)' : '0',
+          }}
+        >
+          {/* Only render children if showFilters is true to avoid content being present when hidden */}
+          {showFilters && (
             <div className="flex flex-col gap-4">
               {/* Search Input */}
               <div className="flex items-center gap-2">
@@ -551,8 +592,8 @@ useEffect(() => {
                 ))}
               </div> */}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Section 3: Graph Visualization Area (takes remaining space) */}
         <div className="flex-1 border rounded-lg overflow-hidden bg-background relative">
