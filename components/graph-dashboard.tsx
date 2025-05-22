@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation" // For App Router
 import { 
   Search, FilterX, ArrowRightToLine, ArrowLeftFromLine, Repeat, Coins, 
@@ -27,7 +27,8 @@ import { subDays, startOfDay, endOfDay } from "date-fns" // For predefined range
 const NODE_TYPES = ["root", "wallet", "contract", "object", "Person", "Organization", "Location", "Event", "Resource"]
 const NODE_STATUSES = ["Active", "Inactive", "Pending", "Archived"] // May not be directly applicable to Sui nodes initially
 
-export default function GraphDashboard() {
+// Create a new client component that uses useSearchParams
+function GraphDashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -570,5 +571,23 @@ useEffect(() => {
         />
       </div>
     </div>
+  )
+}
+
+// Main component that wraps the content in Suspense
+export default function GraphDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col h-screen">
+        <NavBar />
+        <div className="flex-1 p-4 overflow-hidden relative">
+          <div className="h-[calc(100vh-320px)] border rounded-lg overflow-hidden bg-background flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        </div>
+      </div>
+    }>
+      <GraphDashboardContent />
+    </Suspense>
   )
 }

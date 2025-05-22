@@ -63,7 +63,8 @@ export interface SuiTransactionBlockEffects {
   objectChanges?: Array<{
     type: 'mutated' | 'created' | 'deleted' | 'published' | 'transferred';
     sender: string;
-    owner: { AddressOwner: string } | { ObjectOwner: string } | { Shared: { object_id: string }} | 'Immutable'; // And other owner types
+    owner?: { AddressOwner: string } | { ObjectOwner: string } | { Shared: { object_id: string }} | 'Immutable'; // Owner property might not exist for all change types
+    recipient?: { AddressOwner: string } | { ObjectOwner: string } | { Shared: { object_id: string }} | 'Immutable'; // Add recipient for transferred objects
     objectType: string;
     objectId: string;
     version: string;
@@ -246,7 +247,7 @@ function processTransactionResponses(
     // Attempt to identify recipients and amounts from balanceChanges and objectChanges
     if (txBlock.balanceChanges) {
       txBlock.balanceChanges.forEach(change => {
-        if (change.owner && 'AddressOwner' in change.owner) {
+        if (change.owner && typeof change.owner === 'object' && 'AddressOwner' in change.owner) {
           const recipientAddress = change.owner.AddressOwner;
           if (recipientAddress !== sender) { // Exclude sender from recipients list
              if (!recipients.includes(recipientAddress)) recipients.push(recipientAddress);
@@ -266,8 +267,9 @@ function processTransactionResponses(
     // If no recipients from balanceChanges, try to infer from objectChanges (transferred objects)
     if (recipients.length === 0 && txBlock.objectChanges) {
         txBlock.objectChanges.forEach(change => {
-            if (change.type === 'transferred' && change.owner && 'AddressOwner' in change.owner) {
-                const recipientAddress = change.owner.AddressOwner;
+            // For transferred objects, check recipient property
+            if (change.type === 'transferred' && change.recipient && typeof change.recipient === 'object' && 'AddressOwner' in change.recipient) {
+                const recipientAddress = change.recipient.AddressOwner;
                 if (recipientAddress !== sender && !recipients.includes(recipientAddress)) {
                     recipients.push(recipientAddress);
                 }
